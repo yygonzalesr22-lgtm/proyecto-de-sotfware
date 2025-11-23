@@ -1,0 +1,7 @@
+CREATE TABLE IF NOT EXISTS mesas (
+  id_mesa INT AUTO_INCREMENT PRIMARY KEY,
+  numero_mesa INT NOT NULL UNIQUE,
+  capacidad INT NOT NULL DEFAULT 4,
+  estado ENUM('libre','ocupada') DEFAULT 'libre',
+  creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);

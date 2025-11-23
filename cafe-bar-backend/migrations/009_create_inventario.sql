@@ -1,0 +1,9 @@
+CREATE TABLE IF NOT EXISTS inventario (
+  id_inventario INT AUTO_INCREMENT PRIMARY KEY,
+  id_producto INT NOT NULL,
+  stock INT NOT NULL DEFAULT 0,
+  minimo INT NOT NULL DEFAULT 5,
+  maximo INT NOT NULL DEFAULT 100,
+  actualizado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (id_producto) REFERENCES productos(id_producto)
+);

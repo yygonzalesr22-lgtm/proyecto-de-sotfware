@@ -1,0 +1,8 @@
+CREATE TABLE IF NOT EXISTS chat_messages (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  from_user INT,
+  room VARCHAR(100),
+  message TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+   KEY (from_user) REFERENCES usuarios(id) ON DELETE SET NULL
+);
