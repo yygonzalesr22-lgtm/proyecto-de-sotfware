@@ -1,0 +1,29 @@
+// Debug script - check the exact API call being made
+console.log('Testing API Client...');
+
+const API_BASE = 'http://localhost:3000';
+
+async function testLogin() {
+  const path = '/api/auth/login';
+  const url = `${API_BASE}${path}`;
+  const body = { usuario: 'admin@example.com', password_hash: 'pass1234' };
+
+  console.log('Full URL:', url);
+  console.log('Body:', body);
+
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+
+    console.log('Status:', response.status);
+    const data = await response.json();
+    console.log('Response:', data);
+  } catch (error) {
+    console.error('Error:', error.message);
+  }
+}
+
+testLogin();

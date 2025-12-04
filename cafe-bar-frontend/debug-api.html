@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Productos</title>
+    <style>
+        body { font-family: monospace; padding: 20px; }
+        pre { background: #f0f0f0; padding: 10px; overflow-x: auto; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>Debug - Verificar API y Token</h1>
+    <button onclick="checkToken()">1. Verificar Token</button>
+    <button onclick="testLogin()">2. Test Login (obtener nuevo token)</button>
+    <button onclick="testAPI()">3. Test GET /api/productos</button>
+    <button onclick="testCategories()">4. Test GET /api/categorias</button>
+    <pre id="output"></pre>
+
+    <script>
+        function log(msg) {
+            const output = document.getElementById('output');
+            output.textContent += msg + '\n';
+        }
+
+        function clear() {
+            document.getElementById('output').textContent = '';
+        }
+
+        function checkToken() {
+            clear();
+            const token = localStorage.getItem('token');
+            log('=== TOKEN EN LOCALSTORAGE ===');
+            log('Token: ' + (token ? 'SÍ existe' : 'NO existe'));
+            if (token) {
+                log('Primeros 50 chars: ' + token.substring(0, 50));
+                log('Longitud: ' + token.length);
+            }
+            
+            // Ver qué hay en localStorage
+            log('\n=== CONTENIDO DE LOCALSTORAGE ===');
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                const value = localStorage.getItem(key);
+                log(`${key}: ${value.substring(0, 50)}...`);
+            }
+        }
+
+        async function testLogin() {
+            clear();
+            log('=== TEST LOGIN ===');
+            try {
+                const res = await fetch('http://localhost:3000/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        usuario: 'admin@example.com',
+                        password_hash: 'pass1234'
+                    })
+                });
+                
+                const data = await res.json();
+                log('Status: ' + res.status);
+                log('Response: ' + JSON.stringify(data, null, 2));
+                
+                if (data.token) {
+                    localStorage.setItem('token', data.token);
+                    log('\n✅ Token guardado en localStorage');
+                    log('Primeros 50 chars: ' + data.token.substring(0, 50));
+                }
+            } catch(e) {
+                log('ERROR: ' + e.message);
+            }
+        }
+
+        async function testAPI() {
+            clear();
+            const token = localStorage.getItem('token');
+            
+            log('=== TEST GET /api/productos ===');
+            log('Token presente: ' + (token ? 'SÍ' : 'NO'));
+            
+            if (!token) {
+                log('❌ ERROR: No hay token. Haz login primero (botón 2)');
+                return;
+            }
+
+            try {
+                log('Enviando petición...');
+                const res = await fetch('http://localhost:3000/api/productos', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                log('Status: ' + res.status);
+                const data = await res.json();
+                
+                if (Array.isArray(data)) {
+                    log('✅ Retorna ARRAY con ' + data.length + ' items');
+                    if (data.length > 0) {
+                        log('\nPRIMER PRODUCTO:');
+                        log(JSON.stringify(data[0], null, 2));
+                        log('\nKeys del primer producto:');
+                        log(JSON.stringify(Object.keys(data[0])));
+                    }
+                } else {
+                    log('Response: ' + JSON.stringify(data, null, 2));
+                }
+            } catch(e) {
+                log('ERROR: ' + e.message);
+            }
+        }
+
+        async function testCategories() {
+            clear();
+            const token = localStorage.getItem('token');
+            
+            log('=== TEST GET /api/categorias ===');
+            log('Token presente: ' + (token ? 'SÍ' : 'NO'));
+            
+            if (!token) {
+                log('❌ ERROR: No hay token. Haz login primero (botón 2)');
+                return;
+            }
+
+            try {
+                log('Enviando petición...');
+                const res = await fetch('http://localhost:3000/api/categorias', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                log('Status: ' + res.status);
+                const data = await res.json();
+                
+                if (Array.isArray(data)) {
+                    log('✅ Retorna ARRAY con ' + data.length + ' items');
+                    if (data.length > 0) {
+                        log('\nPRIMERA CATEGORIA:');
+                        log(JSON.stringify(data[0], null, 2));
+                        log('\nKeys de la primera categoría:');
+                        log(JSON.stringify(Object.keys(data[0])));
+                    }
+                } else {
+                    log('Response: ' + JSON.stringify(data, null, 2));
+                }
+            } catch(e) {
+                log('ERROR: ' + e.message);
+            }
+        }
+    </script>
+</body>
+</html>

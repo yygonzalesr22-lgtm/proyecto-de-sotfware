@@ -1,11 +1,14 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 
 export default function Home() {
+  const navigate = useNavigate();
+
   const stats = [
-    { icon: '🍽️', label: 'Productos', value: '0', color: 'bg-blue-500' },
-    { icon: '🗂️', label: 'Categorías', value: '0', color: 'bg-green-500' },
-    { icon: '📦', label: 'Inventario', value: '0', color: 'bg-yellow-500' },
-    { icon: '📊', label: 'Ventas Hoy', value: '$0', color: 'bg-red-500' },
+    { icon: '🍽️', label: 'Productos', value: '0', color: 'bg-blue-500', path: '/productos' },
+    { icon: '🗂️', label: 'Categorías', value: '0', color: 'bg-green-500', path: '/categorias' },
+    { icon: '📦', label: 'Inventario', value: '0', color: 'bg-yellow-500', path: '/inventario' },
+    { icon: '📊', label: 'Ventas Hoy', value: '$0', color: 'bg-red-500', path: '/reportes' },
   ];
 
   return (
@@ -17,7 +20,7 @@ export default function Home() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         {stats.map((stat, idx) => (
-          <div key={idx} className={`${stat.color} rounded-lg shadow-lg p-6 text-white transform hover:scale-105 transition`}>
+          <div key={idx} onClick={() => navigate(stat.path)} className={`${stat.color} rounded-lg shadow-lg p-6 text-white transform hover:scale-105 transition cursor-pointer`}>
             <div className="text-3xl mb-2">{stat.icon}</div>
             <h3 className="font-semibold text-lg">{stat.label}</h3>
             <p className="text-2xl font-bold mt-2">{stat.value}</p>
@@ -56,16 +59,16 @@ export default function Home() {
         <div className="bg-white rounded-lg shadow-lg p-6">
           <h2 className="text-xl font-bold text-gray-800 mb-4">💡 Accesos Rápidos</h2>
           <div className="grid grid-cols-2 gap-4">
-            <button className="bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-lg transition font-semibold">
+            <button onClick={() => navigate('/productos')} className="bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-lg transition font-semibold">
               ➕ Nuevo Producto
             </button>
-            <button className="bg-green-500 hover:bg-green-600 text-white py-3 rounded-lg transition font-semibold">
+            <button onClick={() => navigate('/categorias')} className="bg-green-500 hover:bg-green-600 text-white py-3 rounded-lg transition font-semibold">
               ➕ Nueva Categoría
             </button>
-            <button className="bg-yellow-500 hover:bg-yellow-600 text-white py-3 rounded-lg transition font-semibold">
+            <button onClick={() => navigate('/reportes')} className="bg-yellow-500 hover:bg-yellow-600 text-white py-3 rounded-lg transition font-semibold">
               📊 Ver Reportes
             </button>
-            <button className="bg-purple-500 hover:bg-purple-600 text-white py-3 rounded-lg transition font-semibold">
+            <button onClick={() => navigate('/pedidos')} className="bg-purple-500 hover:bg-purple-600 text-white py-3 rounded-lg transition font-semibold">
               📋 Gestionar Pedidos
             </button>
           </div>

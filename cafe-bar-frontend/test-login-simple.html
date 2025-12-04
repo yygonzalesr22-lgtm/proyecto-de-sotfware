@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Test Login API</title>
+</head>
+<body>
+  <h1>Test API Login</h1>
+  <button onclick="testLogin()">Test Login</button>
+  <pre id="output"></pre>
+  
+  <script>
+    async function testLogin() {
+      const output = document.getElementById('output');
+      output.textContent = 'Attempting login...\n';
+      
+      try {
+        const response = await fetch('http://localhost:3000/api/auth/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            usuario: 'admin@example.com',
+            password_hash: 'pass1234'
+          })
+        });
+        
+        const data = await response.json();
+        output.textContent += JSON.stringify(data, null, 2);
+        
+        if (data.ok && data.token) {
+          localStorage.setItem('token', data.token);
+          output.textContent += '\n\n✅ Token guardado en localStorage';
+          
+          // Test GET /api/productos
+          output.textContent += '\n\nTesting GET /api/productos...\n';
+          const prodResponse = await fetch('http://localhost:3000/api/productos', {
+            headers: {
+              'Authorization': 'Bearer ' + data.token
+            }
+          });
+          const prodData = await prodResponse.json();
+          output.textContent += JSON.stringify(prodData, null, 2);
+        }
+      } catch (err) {
+        output.textContent += 'ERROR: ' + err.message;
+      }
+    }
+  </script>
+</body>
+</html>

@@ -1,12 +1,17 @@
 import { useEffect, useState } from "react";
-import { api } from "../api/api.js";
+import apiClient from "../api/apiClient";
 
 export default function Settings() {
   const [usuarios, setUsuarios] = useState([]);
 
   const cargarUsuarios = async () => {
-    const data = await api.getUsers();
-    setUsuarios(data);
+    try {
+      const data = await apiClient.get('/api/usuarios');
+      setUsuarios(Array.isArray(data) ? data : data.data || []);
+    } catch (err) {
+      console.error('Error cargando usuarios:', err);
+      setUsuarios([]);
+    }
   };
 
   useEffect(() => {

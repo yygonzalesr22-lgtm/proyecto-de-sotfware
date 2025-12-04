@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { apiClient } from '../api/apiClient';
+import apiClient from '../api/apiClient';
 import Table from '../components/ui/Table';
 import Modal from '../components/ui/Modal';
 import FormField from '../components/ui/FormField';
@@ -9,17 +9,25 @@ export default function Productos() {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ id: null, nombre: '', precio: 0, categoria_id: '' });
+  const [form, setForm] = useState({ id: null, nombre: '', precio: 0, id_categoria: '' });
 
   async function fetchData() {
     setLoading(true);
     setError(null);
     try {
-      const res = await apiClient.get('/productos');
-      setData(res);
+      const res = await apiClient.get('/api/productos');
+      // Mapear id_producto a id para que la tabla funcione
+      const mappedData = res.map(item => ({
+        ...item,
+        id: item.id_producto,
+        categoria_id: item.id_categoria
+      }));
+      setData(mappedData);
     } catch (err) {
-      setError(err.body?.msg || err.message);
+      console.error('Error fetchData:', err);
+      setError('Error al cargar productos: ' + (err.body?.msg || err.message));
     } finally {
       setLoading(false);
     }
@@ -27,32 +35,38 @@ export default function Productos() {
 
   useEffect(() => { fetchData(); }, []);
 
-  function openCreate() { setForm({ id: null, nombre: '', precio: 0, categoria_id: '' }); setShowForm(true); }
+  function openCreate() { setForm({ id: null, nombre: '', precio: 0, id_categoria: '' }); setShowForm(true); }
   function openEdit(row) { setForm(row); setShowForm(true); }
 
   async function handleSave() {
     if (!form.nombre.trim()) { setError('El nombre es obligatorio'); return; }
     setError(null);
+    setSuccess(null);
     try {
       if (form.id) {
-        await apiClient.put(`/productos/${form.id}`, { nombre: form.nombre, precio: form.precio, categoria_id: form.categoria_id });
+        await apiClient.put(`/api/productos/${form.id}`, { nombre: form.nombre, precio: form.precio, id_categoria: form.id_categoria });
+        setSuccess('✅ Producto actualizado exitosamente');
       } else {
-        await apiClient.post('/productos', { nombre: form.nombre, precio: form.precio, categoria_id: form.categoria_id });
+        await apiClient.post('/api/productos', { nombre: form.nombre, precio: form.precio, id_categoria: form.id_categoria });
+        setSuccess('✅ Producto creado exitosamente');
       }
       setShowForm(false);
-      fetchData();
+      setTimeout(() => fetchData(), 500);
     } catch (err) {
-      setError(err.body?.msg || err.message);
+      console.error('Error handleSave:', err);
+      setError('❌ Error: ' + (err.body?.msg || err.message));
     }
   }
 
   async function handleDelete(row) {
     if (!confirm('¿Eliminar este producto?')) return;
     try {
-      await apiClient.del(`/productos/${row.id}`);
+      await apiClient.del(`/api/productos/${row.id}`);
+      setSuccess('✅ Producto eliminado exitosamente');
       fetchData();
     } catch (err) {
-      setError(err.body?.msg || err.message);
+      console.error('Error handleDelete:', err);
+      setError('❌ Error: ' + (err.body?.msg || err.message));
     }
   }
 
@@ -72,6 +86,7 @@ export default function Productos() {
         </div>
 
         {error && <Alert type="error">{error}</Alert>}
+        {success && <Alert type="success">{success}</Alert>}
 
         {loading ? (
           <div className="text-center py-8 text-gray-500">Cargando productos...</div>
@@ -107,8 +122,8 @@ export default function Productos() {
           />
           <FormField
             label="Categoría ID (opcional)"
-            value={form.categoria_id}
-            onChange={(v) => setForm(s => ({ ...s, categoria_id: v }))}
+            value={form.id_categoria}
+            onChange={(v) => setForm(s => ({ ...s, id_categoria: v }))}
             placeholder="ID de la categoría"
           />
           <div className="flex justify-end space-x-2">

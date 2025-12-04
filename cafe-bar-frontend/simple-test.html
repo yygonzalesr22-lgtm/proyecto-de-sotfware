@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Simple Login Test</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #f5f5f5; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; }
+        button { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        pre { background: #f9f9f9; border: 1px solid #ddd; padding: 10px; border-radius: 4px; overflow-x: auto; max-height: 400px; overflow-y: auto; }
+        .success { color: green; font-weight: bold; }
+        .error { color: red; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Simple Login & API Test</h1>
+        
+        <button onclick="doLogin()">1. LOGIN (obtener token)</button>
+        <button onclick="testProductos()">2. GET /api/productos</button>
+        <button onclick="clearOutput()">Limpiar</button>
+        
+        <pre id="output"></pre>
+    </div>
+
+    <script>
+        const API = 'http://localhost:3000';
+        
+        function log(text) {
+            const out = document.getElementById('output');
+            out.textContent += text + '\n';
+            out.scrollTop = out.scrollHeight;
+        }
+        
+        function clearOutput() {
+            document.getElementById('output').textContent = '';
+        }
+        
+        async function doLogin() {
+            clearOutput();
+            log('📝 INICIANDO LOGIN...\n');
+            
+            try {
+                const body = {
+                    usuario: 'admin@example.com',
+                    password_hash: 'pass1234'
+                };
+                
+                log('📤 Enviando: ' + JSON.stringify(body));
+                
+                const res = await fetch(API + '/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+                
+                const data = await res.json();
+                log('\n✅ Response Status: ' + res.status);
+                log('📦 Response: ' + JSON.stringify(data, null, 2));
+                
+                if (data.token) {
+                    localStorage.setItem('token', data.token);
+                    log('\n✨ TOKEN GUARDADO EN LOCALSTORAGE');
+                    log('Primeros 50 chars: ' + data.token.substring(0, 50) + '...');
+                } else {
+                    log('\n❌ NO HAY TOKEN EN RESPONSE');
+                }
+            } catch(e) {
+                log('❌ ERROR: ' + e.message);
+            }
+        }
+        
+        async function testProductos() {
+            clearOutput();
+            log('📋 PROBANDO GET /api/productos...\n');
+            
+            const token = localStorage.getItem('token');
+            if (!token) {
+                log('❌ NO HAY TOKEN. Haz login primero (botón 1)');
+                return;
+            }
+            
+            log('🔑 Token presente (primeros 30 chars): ' + token.substring(0, 30) + '...');
+            
+            try {
+                log('\n📤 Enviando GET con Authorization header...');
+                
+                const res = await fetch(API + '/api/productos', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': 'Bearer ' + token,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                log('✅ Response Status: ' + res.status);
+                
+                const data = await res.json();
+                
+                if (Array.isArray(data)) {
+                    log('✨ EXITO! Array con ' + data.length + ' productos\n');
+                    if (data.length > 0) {
+                        log('PRIMER PRODUCTO:');
+                        log(JSON.stringify(data[0], null, 2));
+                        log('\nKEYS: ' + JSON.stringify(Object.keys(data[0])));
+                    }
+                } else {
+                    log('📦 Response:\n' + JSON.stringify(data, null, 2));
+                }
+            } catch(e) {
+                log('❌ ERROR: ' + e.message);
+            }
+        }
+    </script>
+</body>
+</html>

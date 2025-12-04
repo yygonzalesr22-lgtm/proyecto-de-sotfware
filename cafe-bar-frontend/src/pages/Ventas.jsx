@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { api } from "../api/api.js";
+import apiClient from "../api/apiClient";
 
 export default function ventas() {
   const [mesa, setMesa] = useState("");
@@ -8,11 +8,12 @@ export default function ventas() {
   const enviarVenta = async () => {
     if (!mesa || !total) return alert("Completa todos los campos");
 
-    const data = await api.crearVenta({
-      mesa,
-      total,
-      fecha: new Date()
-    });
+    try {
+      const data = await apiClient.post('/api/pedidos', {
+        mesa,
+        total,
+        fecha: new Date()
+      });
 
     console.log("Venta creada:", data);
     alert("Venta creada");

@@ -1,80 +1,93 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { apiClient, setToken } from '../api/apiClient';
-import Alert from '../components/ui/Alert';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import apiClient from "../api/apiClient";
 
 export default function Login() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState(null);
+  const [form, setForm] = useState({ usuario: "", password_hash: "" });
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  async function handleSubmit(e) {
+  const handleChange = (e) =>
+    setForm({ ...form, [e.target.name]: e.target.value });
+
+  const handleLogin = async (e) => {
     e.preventDefault();
-    setError(null);
     setLoading(true);
+    setError("");
+
     try {
-      const res = await apiClient.post('/auth/login', { email, password });
-      if (res.token) {
-        setToken(res.token);
-        localStorage.setItem('user', JSON.stringify(res.usuario));
-        navigate('/');
+      console.log("Enviando login con:", form);
+      const response = await apiClient.post("/api/auth/login", form);
+      
+      console.log("Respuesta recibida:", response);
+      
+      if (response.ok && response.token) {
+        localStorage.setItem("token", response.token);
+        localStorage.setItem("user", JSON.stringify(response.user));
+        navigate("/");
       } else {
-        setError('Respuesta de login inválida');
+        setError(response.error || "Error en el login");
       }
     } catch (err) {
-      setError(err.body?.msg || err.message);
+      console.error("Error capturado:", err);
+      setError(err.body?.error || err.message || "Error al conectar con el servidor");
     } finally {
       setLoading(false);
     }
-  }
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center">
-      <div className="bg-white rounded-lg shadow-2xl p-8 w-full max-w-md">
-        <div className="text-center mb-8">
-          <span className="text-5xl">☕</span>
-          <h2 className="text-3xl font-bold text-gray-800 mt-2">Café Bar</h2>
-          <p className="text-gray-600 text-sm">Sistema de Gestión</p>
-        </div>
+    <div className="min-h-screen bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center p-4">
+      <div className="bg-white rounded-lg shadow-lg p-8 w-full max-w-md">
+        <h1 className="text-3xl font-bold text-center text-gray-800 mb-6">
+          🍰 Café Bar
+        </h1>
 
-        {error && <Alert type="error">{error}</Alert>}
+        <form onSubmit={handleLogin} className="space-y-4">
+          {error && (
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+              {error}
+            </div>
+          )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Email</label>
+            <label className="block text-gray-700 font-bold mb-2">Usuario</label>
             <input
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              type="email"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-              placeholder="tu@email.com"
+              type="text"
+              name="usuario"
+              value={form.usuario}
+              onChange={handleChange}
+              placeholder="admin@example.com"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
             />
           </div>
+
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Contraseña</label>
+            <label className="block text-gray-700 font-bold mb-2">Contraseña</label>
             <input
               type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+              name="password_hash"
+              value={form.password_hash}
+              onChange={handleChange}
               placeholder="••••••••"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               required
             />
           </div>
+
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 rounded-lg transition disabled:opacity-50"
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-200 disabled:opacity-50"
           >
-            {loading ? 'Ingresando...' : 'Ingresar'}
+            {loading ? "Cargando..." : "Iniciar Sesión"}
           </button>
         </form>
 
-        <p className="text-center text-gray-600 text-sm mt-6">
-          ¿No tienes cuenta? <span className="text-blue-600 cursor-pointer">Contáctanos</span>
+        <p className="text-center text-gray-600 text-sm mt-4">
+          Test credentials: admin@example.com / pass1234
         </p>
       </div>
     </div>

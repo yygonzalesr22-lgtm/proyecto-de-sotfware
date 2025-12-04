@@ -1,55 +1,29 @@
-const API_URL = "http://localhost:3000/api";
+const BASE = "http://localhost:3000";
 
 export const api = {
-  // -------------------------------
-  // USUARIOS
-  // -------------------------------
-  getUsers: async () => {
-    const res = await fetch(`${API_URL}/usuarios`);
-    return res.json();
+  registrar: async (data) => {
+    try {
+      const r = await fetch(`${BASE}/api/auth/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      return await r.json();
+    } catch (e) {
+      return { ok: false, error: "Error de conexión" };
+    }
   },
 
-  // -------------------------------
-  // PRODUCTOS
-  // -------------------------------
-  getProductos: async () => {
-    const res = await fetch(`${API_URL}/productos`);
-    return res.json();
-  },
-
-  crearProducto: async (data) => {
-    const res = await fetch(`${API_URL}/productos`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    });
-    return res.json();
-  },
-
-  eliminarProducto: async (id) => {
-    const res = await fetch(`${API_URL}/productos/${id}`, {
-      method: "DELETE",
-    });
-    return res.json();
-  },
-
-  // -------------------------------
-  // VENTAS
-  // -------------------------------
-  crearVenta: async (data) => {
-    const res = await fetch(`${API_URL}/pedidos`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    });
-    return res.json();
-  },
-
-  // -------------------------------
-  // REPORTES
-  // -------------------------------
-  getReportes: async () => {
-    const res = await fetch(`${API_URL}/reportes`);
-    return res.json();
+  login: async (data) => {
+    try {
+      const r = await fetch(`${BASE}/api/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      return await r.json();
+    } catch {
+      return { ok: false, error: "Error de conexión" };
+    }
   },
 };
