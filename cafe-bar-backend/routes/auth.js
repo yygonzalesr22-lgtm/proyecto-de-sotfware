@@ -1,77 +1,132 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const bcrypt = require("bcrypt");
-const jwt = require('jsonwebtoken');
-const { pool: db } = require('../config/database');
+const jwt = require("jsonwebtoken");
+const { promisePool } = require("../config/database");
 
+require('dotenv').config();
+const JWT_SECRET = process.env.JWT_SECRET;
 
-const JWT_SECRET = process.env.JWT_SECRET || 'supersecretjwt';
+if (!JWT_SECRET) {
+  console.warn('⚠️  WARNING: JWT_SECRET is not set. Please configure environment variables.');
+}
 
-// Registro
-router.post('/register', async (req, res) => {
-  const { nombre, email, password } = req.body;
+// ===============================
+//  RUTA: REGISTRO
+// ===============================
+router.post("/register", async (req, res) => {
+  const { nombre_completo, usuario, password_hash, rol = "admin" } = req.body;
 
-  if (!nombre || !email || !password)
-    return res.status(400).json({ msg: "Todos los campos son obligatorios" });
+  if (!nombre_completo || !usuario || !password_hash) {
+    return res.json({ ok: false, error: "Todos los campos son obligatorios" });
+  }
 
-  db.query('SELECT * FROM usuarios WHERE email = ?', [email], async (err, results) => {
-    if (err) return res.status(500).json(err);
-
-    if (results.length > 0)
-      return res.status(400).json({ msg: "El usuario ya existe" });
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    db.query(
-      'INSERT INTO usuarios (nombre, email, password) VALUES (?, ?, ?)',
-      [nombre, email, hashedPassword],
-      (err) => {
-        if (err) return res.status(500).json(err);
-
-        return res.status(201).json({ msg: "Usuario registrado correctamente" });
-      }
+  try {
+    // Verificar si existe el usuario
+    const [existingUser] = await promisePool.query(
+      "SELECT * FROM usuarios WHERE usuario = ?",
+      [usuario]
     );
-  });
+
+    if (existingUser.length > 0) {
+      return res.json({ ok: false, error: "El usuario ya está registrado" });
+    }
+
+    // Insertar nuevo usuario
+    await promisePool.query(
+      "INSERT INTO usuarios (nombre_completo, usuario, password_hash, rol, activo) VALUES (?,?,?,?,1)",
+      [nombre_completo, usuario, password_hash, rol]
+    );
+
+    res.json({ ok: true, message: "Usuario registrado correctamente" });
+
+  } catch (error) {
+    console.error("Error en registro:", error);
+    res.json({ ok: false, error: error.message || "Error interno del servidor" });
+  }
 });
- 
-// Login
-router.post('/login', (req, res) => {
-  const { email, password } = req.body;
 
-  db.query('SELECT * FROM usuarios WHERE email = ?', [email], async (err, results) => {
-    if (err) return res.status(500).json(err);
-    if (results.length === 0) return res.status(400).json({ msg: "Usuario no encontrado" });
+// ===============================
+//  RUTA: LOGIN
+// ===============================
+router.post("/login", async (req, res) => {
+  console.log("🔐 Login request - Body:", req.body);
+  
+  const { usuario, password, email } = req.body;
+  const loginUser = usuario || email;
+  const loginPass = password || req.body.password_hash;
 
-    const usuario = results[0];
-    const isMatch = await bcrypt.compare(password, usuario.password);
+  if (!loginUser || !loginPass) {
+    console.warn("⚠️ Login fallido: faltan campos");
+    return res.json({ ok: false, error: "Faltan campos" });
+  }
 
-    if (!isMatch) return res.status(400).json({ msg: "Contraseña incorrecta" });
+  try {
+    console.log(`🔍 Buscando usuario: ${loginUser}`);
+    
+    // Buscar por email o usuario
+    const [user] = await promisePool.query(
+      "SELECT id, nombre, email, password, role, activo FROM usuarios WHERE (email = ? OR ? = email) LIMIT 1",
+      [loginUser, loginUser]
+    );
 
+    console.log("📊 Resultado de query:", user.length, "usuarios encontrados");
+
+    if (user.length === 0) {
+      console.warn("❌ Usuario no encontrado:", loginUser);
+      return res.json({ ok: false, error: "Usuario o contraseña incorrectos" });
+    }
+
+    const userData = user[0];
+    
+    // Comparar contraseña (puede estar hasheada con bcrypt o en texto plano)
+    const bcrypt = require('bcryptjs');
+    let passwordMatch = false;
+    
+    // Intentar con bcrypt
+    try {
+      passwordMatch = await bcrypt.compare(loginPass, userData.password);
+    } catch (err) {
+      // Si falla bcrypt, comparar en texto plano (para usuarios creados sin hash)
+      passwordMatch = (loginPass === userData.password);
+    }
+
+    if (!passwordMatch) {
+      console.warn("❌ Contraseña incorrecta para:", loginUser);
+      return res.json({ ok: false, error: "Usuario o contraseña incorrectos" });
+    }
+
+    if (!userData.activo) {
+      console.warn("❌ Usuario inactivo:", loginUser);
+      return res.json({ ok: false, error: "Usuario inactivo" });
+    }
+
+    // User authenticated successfully
+    
+    // Generar JWT token
     const token = jwt.sign(
-      { id: usuario.id, nombre: usuario.nombre },
+      { id: userData.id, email: userData.email, nombre: userData.nombre, role: userData.role },
       JWT_SECRET,
-      { expiresIn: "1h" }
+      { expiresIn: "7d" }
     );
 
-    return res.json({
-      msg: "Login exitoso",
+    // JWT token generated
+
+    res.json({
+      ok: true,
+      message: "Inicio de sesión correcto",
       token,
-      usuario: { id: usuario.id, nombre: usuario.nombre, email: usuario.email }
+      user: {
+        id: userData.id,
+        nombre: userData.nombre,
+        email: userData.email,
+        role: userData.role
+      },
     });
-  });
-});
 
-// Logout
-router.post('/logout', (req, res) => {
-  return res.json({ msg: "Sesión cerrada" });
-});
-
-// Ver usuarios
-router.get('/users', (req, res) => {
-  db.query('SELECT id, nombre, email FROM usuarios', (err, results) => {
-    if (err) return res.status(500).json(err);
-    return res.json(results);
-  });
+  } catch (error) {
+    console.error("❌ Error en login:", error.message);
+    res.json({ ok: false, error: error.message || "Error interno del servidor" });
+  }
 });
 
 module.exports = router;
